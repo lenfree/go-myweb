@@ -17,10 +17,11 @@ func returnHostname(w http.ResponseWriter, r *http.Request) {
         }
 }
 
-func redirect(w http.ResponseWriter, req *http.Request) {
-        http.Redirect(w, req,
-                "https://" + req.Host + req.URL.String(),
-                http.StatusMovedPermanently,
+func redirect(w http.ResponseWriter, r *http.Request) {
+        http.Redirect(w,
+            r,
+            "https://" + r.Host + r.URL.String(),
+            301,
         )
 }
 
