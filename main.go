@@ -1,28 +1,12 @@
 package main
 
 import (
+        "github.com/kabukky/httpscerts"
         "io"
         "log"
         "net/http"
         "os"
-
-        "gopkg.in/redis.v5"
 )
-
-func ping(w http.ResponseWriter, r *http.Request) {
-        client := redis.NewClient(&redis.Options{
-                Addr:     "redis:6379",
-                Password: "", // no password set
-                DB:       0,  // use default DB
-        })
-
-        pong, err := client.Ping().Result()
-        if err != nil {
-                io.WriteString(w, err.Error())
-        } else {
-                io.WriteString(w, pong)
-        }
-}
 
 func returnHostname(w http.ResponseWriter, r *http.Request) {
         name, err := os.Hostname()
@@ -33,8 +17,26 @@ func returnHostname(w http.ResponseWriter, r *http.Request) {
         }
 }
 
+func redirect(w http.ResponseWriter, req *http.Request) {
+        http.Redirect(w, req,
+                "https://" + req.Host + req.URL.String(),
+                http.StatusMovedPermanently,
+        )
+}
+
 func main() {
-        http.HandleFunc("/health", ping)
+        // Generate SSL cert if doesn't exists
+        // Thanks to https://github.com/kabukky/httpscerts
+        err := httpscerts.Check("cert.pem", "key.pem")
+        if err != nil {
+                // Generate new SSL cert
+                err := httpscerts.Generate("cert.pem", "key.pem", "localhost")
+                if err != nil {
+                        log.Fatal("Error generating new cert")
+                }
+        }
+
         http.HandleFunc("/", returnHostname)
-        log.Fatal(http.ListenAndServe(":8000", nil))
+        go http.ListenAndServe(":80", http.HandlerFunc(redirect))
+        http.ListenAndServeTLS(":443", "cert.pem", "key.pem", nil)
 }

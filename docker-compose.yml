@@ -6,9 +6,5 @@ services:
     command: /bin/bash -c 'go get -v && go run main.go'
     build:
       context: .
-    links:
-      - redis
     ports:
       - "8000:8000"
-  redis:
-    image: redis:latest
